@@ -117,34 +117,25 @@ function Exporter(context) {
 			if (!layer.isVisible()) {
 				return;
 			}
-		
-// 			var layerHtml = "";
-// 			
-// 			if (!layerMarkedForExport(layer) && layer instanceof MSLayerGroup) {
-// 				layerHtml = generateHTMLForChildren(layer, tabs + "\t");
-// 				if (layerHtml != "") {
-// 					layerHtml = "\n" + layerHtml + tabs;
-// 				}
-// 			}
-// 			
-// 			// Don't export layer if it's empty unless it's marked for export
-// 			if (!layerMarkedForExport && layerHtml == "") {
-// 				return;
-// 			}
-// 			
-// 			html = tabs + "<div class='sk-asset sk-" + cleanString(layer.name()) + "'>"
-// 			+ layerHtml
-// 			+ "</div>\n";
 			
-			html += tabs + "<div class='sk-asset sk-" + cleanString(layer.name()) + "'>";
+			var openTag = tabs + "<div class='sk-asset sk-" + cleanString(layer.name()) + "'>";
+			var closeTag = "</div>\n";
 			
-			if (layer instanceof MSLayerGroup && !layerMarkedForExport(layer)) {
-				html += "\n";
-				html += generateHTMLForChildren(layer, tabs + "\t");
-				html += tabs;
+			// If layer is exportable, write it to HTML but not its children
+			if (layerMarkedForExport(layer)) {
+				html += openTag + closeTag;
 			}
-			
-			html += "</div>\n";
+			// If layer is group...
+			else if (layer instanceof MSLayerGroup) {
+				var childrenHtml = generateHTMLForChildren(layer, tabs + "\t");
+				
+				// If group is not empty, write it and its children to HTML
+				if (childrenHtml != "") {
+					html += openTag + "\n";
+					html += childrenHtml;
+					html += tabs + closeTag;
+				}
+			}
 		});
 		
 		return html;
