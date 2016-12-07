@@ -30,6 +30,8 @@ function Exporter(context) {
 	
 	var imageFormat = "svg";
 	var imageScales = [1];
+	var embedSvg = true;
+	var exportFolder = null;
 	
 	// Accessors
 	this.getSelection = function() {
@@ -86,7 +88,7 @@ function Exporter(context) {
 	
 	var exportLayers = {};
 	
-	function generateHTML(artboard, exportPath) {
+	function generateHTML(artboard) {
 		// Create new array to save layers for export for each artboard
 		exportLayers[artboard] = [];
 		
@@ -142,7 +144,7 @@ function Exporter(context) {
 		return html;
 	}
 	
-	function generateHTMLForChildren(group, tabs, exportPath) {
+	function generateHTMLForChildren(group, tabs) {
 		var html = "";
 		
 		forEachLayer(group, function(layer) {
@@ -155,10 +157,16 @@ function Exporter(context) {
 			
 			// If layer is exportable, write it to HTML but not its children
 			if (layerMarkedForExport(layer)) {
-				html += openTag + closeTag;
 				
-				// This layer needs to be exported to HTML
+				// This layer's image needs to be exported
 				exportLayers[layer.parentArtboard()].push(layer);
+				
+				var embedCode = "";
+				if (embedSvg) {
+					embedCode = generateSVGString(layer);
+				}
+				
+				html += openTag + embedCode + closeTag;
 			}
 			
 			// If layer is group...
@@ -182,19 +190,38 @@ function Exporter(context) {
 	
 	function exportImages(layers, exportPath) {
 		layers.forEach(function(layer) {
-			exportImageForLayer(layer, exportPath);
+			exportImageForLayer(layer, exportPath + "images/", imageFormat, imageScales);
 		});
 	}
 	
-	function exportImageForLayer(layer, exportPath) {
-		var fileName = exportPath + "images/" + layer.name() + "." + imageFormat;
+	function exportImageForLayer(layer, exportPath, imageFormat, imageScales) {
+		var filePaths = [];
 		var formats = imageScales.map(function(scale) {
 			return [MSExportFormat formatWithScale:scale name:"" fileFormat:imageFormat];		
 		});
 		var requests = [MSExportRequest exportRequestsFromExportableLayer:layer exportFormats:formats useIDForName: false];
 		requests.forEach(function(request) {
-			[doc saveExportRequest:request toFile: fileName];
+			var filePath = exportPath + request.name() + "." + request.format();
+			filePaths.push(filePath);
+			[doc saveExportRequest:request toFile: filePath];
 		});
+		return filePaths;
+	}
+	
+	function generateSVGString(layer) {
+		log("exportFolder: " + exportFolder)
+		
+		var filePaths = exportImageForLayer(layer, exportFolder, "svg", [1]);
+		var filePath = filePaths[0];
+		
+		log("filePath: " + filePath)
+		
+		var fileUrl = [NSURL fileURLWithPath:filePath];
+		var str = [[NSString alloc] initWithContentsOfURL:fileUrl];
+		log("str: " + str)
+		deleteFile(filePath);
+		
+		return str;
 	}
 	
 	function generateCSSForLayer(layer) {
@@ -204,9 +231,8 @@ function Exporter(context) {
 		css += "\tleft: " + Math.round(layer.frame().x()) + "px;\n";
 		css += "\ttop: " + Math.round(layer.frame().y()) + "px;\n";
 		
-		if (layerMarkedForExport(layer)) {
-			// Embed SVG into CSS
-// 			css += "\tbackground-image: url(\"data:image/svg+xml;utf8," + svg + "\");\n";
+		// Set background image for exported layer
+		if (layerMarkedForExport(layer) && !embedSvg) {
 			css += "\tbackground-image: url(\"images/" + layer.name() + "." + imageFormat + "\");\n";
 		}
 		
@@ -227,6 +253,7 @@ function Exporter(context) {
 		
 		css += ".sk-asset {\n"
 		+ "\tposition: absolute;\n"
+		+ "\tbackground-repeat: no-repeat;\n"
 		+ "}\n";
 		
 		return css;
@@ -248,7 +275,8 @@ function Exporter(context) {
 		return css;
 	}
 	
-	this.saveFiles = function(exportFolder) {
+	this.saveFiles = function(folder) {
+		exportFolder = folder;
 		selectedArtboards.forEach(function(artboard) {
 			var exportPath = exportFolder + artboard.name() + "/";
 			createFolder(exportPath);
@@ -268,6 +296,11 @@ function Exporter(context) {
 function createFolder(name) {
 	var fileManager = [NSFileManager defaultManager];
 	[fileManager createDirectoryAtPath:name withIntermediateDirectories:true attributes:nil error:nil];
+}
+
+function deleteFile(name) {
+	var fileManager = [NSFileManager defaultManager];
+	[fileManager removeItemAtPath:name error:nil];
 }
 
 function fileSaver() {
