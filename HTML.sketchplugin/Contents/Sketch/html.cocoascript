@@ -57,6 +57,12 @@ function Exporter(context) {
 		return str.replace(/\W+/g, "-");
 	}
 	
+	function layerMarkedForExport(layer) {
+		var exportOptions = layer.exportOptionsGeneric();
+		var formats = exportOptions.exportFormats();
+		return formats.count() > 0;
+	}
+	
 	function saveTextToFile (filename, text) {
 		var path = [@"" stringByAppendingString:filename];
 		var str = [@"" stringByAppendingString:text];
@@ -77,6 +83,8 @@ function Exporter(context) {
 	
 	function generateHTML(artboard) {
 		var html = generateHTMLHeader(artboard);
+		
+		html += generateHTMLForChildren(artboard, "\t\t\t");
 		
 		html += generateHTMLFooter();
 		return html;
@@ -102,17 +110,44 @@ function Exporter(context) {
 		return html;
 	}
 	
-	// Generates HTML for an artboard
-	function generateHTMLForArtboard(artboard) {
+	function generateHTMLForChildren(group, tabs) {
+		var html = "";
 		
-	}
-	
-	function generateHTMLForGroup(group) {
-	
-	}
-	
-	function generateHTMLForLayer(layer) {
-	
+		forEachLayer(group, function(layer) {
+			if (!layer.isVisible()) {
+				return;
+			}
+		
+// 			var layerHtml = "";
+// 			
+// 			if (!layerMarkedForExport(layer) && layer instanceof MSLayerGroup) {
+// 				layerHtml = generateHTMLForChildren(layer, tabs + "\t");
+// 				if (layerHtml != "") {
+// 					layerHtml = "\n" + layerHtml + tabs;
+// 				}
+// 			}
+// 			
+// 			// Don't export layer if it's empty unless it's marked for export
+// 			if (!layerMarkedForExport && layerHtml == "") {
+// 				return;
+// 			}
+// 			
+// 			html = tabs + "<div class='sk-asset sk-" + cleanString(layer.name()) + "'>"
+// 			+ layerHtml
+// 			+ "</div>\n";
+			
+			html += tabs + "<div class='sk-asset sk-" + cleanString(layer.name()) + "'>";
+			
+			if (layer instanceof MSLayerGroup && !layerMarkedForExport(layer)) {
+				html += "\n";
+				html += generateHTMLForChildren(layer, tabs + "\t");
+				html += tabs;
+			}
+			
+			html += "</div>\n";
+		});
+		
+		return html;
 	}
 	
 	// Generates all CSS for the artboard
