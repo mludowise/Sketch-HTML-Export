@@ -30,7 +30,7 @@ function Exporter(context) {
 	
 	var imageFormat = "svg";
 	var imageScales = [1];
-	var embedSvg = true;
+	var embedSvg = false;
 	var exportFolder = null;
 	
 	// Accessors
@@ -327,6 +327,136 @@ function fileSaver() {
     return allowedUrl
 }
 
+function options2() {
+	// create a wrapper window
+// 	var mainwindow = createWindow("Font Awesome - Add an icon with combobox", "Choose an icon")
+// 	var wrapper = mainwindow[0]
+// 	var content = mainwindow[1]
+
+// 	var prototype = [[NSButtonCell alloc] init];
+//     [prototype setTitle:@"Watermelons"];
+//     [prototype setButtonType:NSRadioButton];
+//     var matrixRect = NSMakeRect(20.0, 20.0, 125.0, 125.0);
+//     var myMatrix = [[NSMatrix alloc] initWithFrame:matrixRect
+//                                                     mode:NSRadioModeMatrix
+//                                                prototype:prototype
+//                                             numberOfRows:3
+//                                          numberOfColumns:1];
+//     [[[typeField window] contentView] addSubview:myMatrix];
+//     var cellArray = [myMatrix cells];
+//     [[cellArray objectAtIndex:0] setTitle:@"Apples"];
+//     [[cellArray objectAtIndex:1] setTitle:@"Oranges"];
+//     [[cellArray objectAtIndex:2] setTitle:@"Pears"];
+    
+//     [prototype release];
+//     [myMatrix release];
+
+// 	[content addSubview:prototype]
+	
+// 	var response = [NSApp runModalForWindow:wrapper];
+
+	var panel = NSPanel.alloc().init();
+// 	var content = window.contentView;
+// 	content.addSubview(prototype);
+
+// 	var alert = NSAlert.alloc().init();
+// 	alert.setMessageText("Errors Detected");
+// 	if (errors == "") {
+// 		alert.addButtonWithTitle('Continue');
+// 	}
+// 	alert.addButtonWithTitle('Cancel');
+// 	alert.setAccessoryView(textField);
+
+// 	var responseCode = panel.runModal();
+
+	var window = [[NSWindow alloc] init]
+// 	[window setToolbar:nil]
+	[window makeKeyWindow]
+	[window becomeKeyWindow]
+	[window setAnimationBehavior:NSWindowAnimationBehaviorNone]
+	[window setFrame:NSMakeRect(500, 0, 640, 480) display: true]
+	
+	var content = [[NSView alloc] initWithFrame:NSMakeRect(500, 0, 640, 480)]
+	content.setWantsLayer(true)
+	[window setContentView:content];
+	
+	var cancelButton = [[NSButton alloc] initWithFrame:NSMakeRect(556, 5, 36, 36)]
+	cancelButton.setTitle("Cancel");
+	[cancelButton setCOSJSTargetFunction:function(sender) {
+	  [wrapper orderOut:nil]
+	  [NSApp stopModal]
+	}];
+
+	[content addSubview:cancelButton]
+	
+	var response = [NSApp runModalForWindow:window];
+
+	// if is the response is ok, add icon to the layer
+	if (response == NSOKButton) {
+		log("OK")
+	} else {
+		log("Cancel")
+	}
+}
+
+function options(exporter) {
+
+	// Create alert window
+	var alert = NSAlert.alloc().init();
+	alert.setMessageText("Options");
+	alert.addButtonWithTitle('Continue');
+	alert.addButtonWithTitle('Cancel');
+	
+	// Create panel
+	var view = NSView.alloc().initWithFrame(NSMakeRect(0, 0, 125, 300));
+	alert.setAccessoryView(view);
+	
+	// Create radio button array
+	var formatButton = NSButtonCell.alloc().init();
+    formatButton.setTitle("Image Format");
+    formatButton.setButtonType(NSRadioButton);
+    var formatMatrix = [[NSMatrix alloc] initWithFrame:NSMakeRect(20, 20, 125, 75)
+                                                  mode:NSRadioModeMatrix
+                                             prototype:formatButton
+                                          numberOfRows:2
+                                      numberOfColumns:1];
+    var cellArray = formatMatrix.cells();
+    cellArray.objectAtIndex(0).setTitle("png");
+    cellArray.objectAtIndex(1).setTitle("svg");
+	alert.setAccessoryView(formatMatrix);
+// 	view.addSubView(formatMatrix);
+	
+	// Add SVG options
+// 	var svgComboBox = NSComboBox.alloc().initWithFrame(NSMakeRect(50,160,100,50));
+// 	svgComboBox.addItemsWithObjectValues(["Embed in HTML", "Export as images"]);
+// 	view.addSubView(svgComboBox);
+// 	
+// 	// Add PNG options
+// 	var pngButton = NSButtonCell.alloc().init();
+// 	pngButton.setTitle("Support Retina Sizes");
+// 	pngButton.setButtonType(NSSwitchButton);
+//     var pngMatrix = [[NSMatrix alloc] initWithFrame:NSMakeRect(20, 200, 125, 75)
+//                                                mode:nil
+//                                           prototype:pngButton
+//                                        numberOfRows:3
+//                                     numberOfColumns:1];
+// 	cellArray = pngMatrix.cells();
+// 	cellArray.objectAtIndex(0).setTitle("@1x");
+// 	cellArray.objectAtIndex(1).setTitle("@2x");
+// 	cellArray.objectAtIndex(2).setTitle("@3x");
+// 	view.addSubView(pngMatrix);
+	
+	// Display alert
+	var responseCode = alert.runModal();
+
+	// Errors or user hit cancel
+	if (responseCode != NSAlertFirstButtonReturn) {
+		log("Cancelled");
+	}
+		
+	log(formatMatrix.selectedCells()[0].title());
+}
+
 // Called when user runs "Eport HTML"
 function exportHTML(context) {
 	try {
@@ -336,7 +466,9 @@ function exportHTML(context) {
 			alertError("Please select the artboards you want to export to HTML.", "No Artboard Selected");
 			return;
 		}
-				
+		
+		options();
+		
 		// Open the system dialog to choose the export location
 		var fileURL = fileSaver();
 		var exportPath = fileURL.path() + "/";
@@ -347,4 +479,114 @@ function exportHTML(context) {
 		log(e);
 		alert(e, "Error");
 	}
+}
+
+function createWindow(title, subtitle) {
+	// create a wrapper window
+	var wrapper = [[NSWindow alloc] init]
+	[wrapper setToolbar:nil]
+	[wrapper makeKeyWindow]
+	[wrapper becomeKeyWindow]
+	[wrapper setAnimationBehavior:NSWindowAnimationBehaviorNone]
+	// I had problems with NSBorderlessWindowMask and setIsVisible solution.
+	// [wrapper setIsVisible:true]
+	// [wrapper becomeFirstResponder:true]
+	// [wrapper orderFront:nil];
+	// [wrapper makeKeyAndOrderFront:self];
+	// [wrapper setStyleMask:NSBorderlessWindowMask]
+	[wrapper setFrame:[[NSScreen mainScreen] frame] display: true]
+	[wrapper setHasShadow:false]
+	[wrapper setOpaque:false]
+	[wrapper setBackgroundColor:NSColor.clearColor()]
+
+	var x = ([[NSScreen mainScreen] frame].size.width / 2) - 320;
+	var y = ([[NSScreen mainScreen] frame].size.height / 2) - 200;
+
+	// create a body
+	var body = [[NSView alloc] initWithFrame:NSMakeRect(500, 0, 640, 480)]
+	body.setWantsLayer(true)
+
+	// create a header
+	var header = [[NSView alloc] initWithFrame:NSMakeRect(x, y+352, 600, 48)]
+	header.setWantsLayer(true)
+
+	// header fixer
+	var headerfixer = [[NSView alloc] initWithFrame:NSMakeRect(0, 352, 600, 20)]
+	headerfixer.setWantsLayer(true)
+	var fixbg = [CALayer layer]
+	[fixbg setBackgroundColor:CGColorCreateGenericRGB(255/255, 189/255, 0/255, 1.0)]
+	[headerfixer setLayer:fixbg]
+
+	// create a content area
+	var content = [[NSView alloc] initWithFrame:NSMakeRect(x, y, 600, 400)]
+	content.setWantsLayer(true)
+
+	[content addSubview:headerfixer]
+
+	// create a layer to content
+	var contentLayer = [CALayer layer]
+	[contentLayer setBackgroundColor:CGColorCreateGenericRGB(255/255, 255/255, 255/255, 1.0)] //RGB plus Alpha Channel
+	[contentLayer setMasksToBounds: true]
+	[contentLayer setCornerRadius: 6.0]
+	[content setLayer:contentLayer]
+
+	// content area shadow
+	dropShadow = [[[NSShadow alloc] init] autorelease];
+	[dropShadow setShadowColor:[NSColor colorWithCalibratedWhite:0.0 alpha:0.4]];
+	[dropShadow setShadowBlurRadius:8];
+	[dropShadow setShadowOffset:NSMakeSize(0,0)];
+	[content setShadow: dropShadow];
+
+	// content append to body
+	[body addSubview:content]
+
+	// set body as content view of wrapper
+	[wrapper setContentView:body];
+
+	// title add to header
+	var titleField = Library.components.title(title,14,[NSColor blackColor],NSMakeRect(16, 5, 400, 30));
+	[titleField setAlphaValue:0.6]
+	[header addSubview:titleField]
+
+	// set background to header
+	var headerBG = [CALayer layer]
+	[headerBG setBackgroundColor:CGColorCreateGenericRGB(255/255, 189/255, 0/255, 1.0)] //RGB plus Alpha Channel
+	[headerBG setMasksToBounds:true]
+	[headerBG setCornerRadius:6.0]
+	[header setClipsToBounds:true]
+	[header setLayer:headerBG]
+
+	// subtitle in window
+	var subTitleField = Library.components.title(subtitle,22,[NSColor blackColor],NSMakeRect(x+25, y+300, 300, 30));
+	[[wrapper contentView] addSubview:subTitleField]
+
+	// create a cancel button
+	var cancelbuttonimage = [NSImage imageNamed:NSImageNameStopProgressTemplate];
+	// call custom function to build cancel button
+	var cancelButton = Library.components.custombutton(cancelbuttonimage,NSMakeRect(556, 5, 36, 36));
+	[cancelButton setCOSJSTargetFunction:function(sender) {
+	  [wrapper orderOut:nil]
+	  [NSApp stopModal]
+	}];
+
+	[header addSubview:cancelButton]
+
+	// create a help button
+	var helpbuttonimage = [NSImage imageNamed:NSImageNameBookmarksTemplate];
+	// call custom function to build help button
+	var helpButton = Library.components.custombutton(helpbuttonimage,NSMakeRect(520, 5, 36, 36));
+	[helpButton setCOSJSTargetFunction:function(sender) {
+	  var url = [NSURL URLWithString:@"https://github.com/keremciu/sketch-use-fontawesome/blob/master/HELP.md"]
+	  if( ![[NSWorkspace sharedWorkspace] openURL:url] ){
+		  sketchLog(@"Failed to open url:" + [url description])
+	  }    
+	}];
+	[header addSubview:helpButton]
+
+	[wrapper setAlphaValue:0.95]
+
+	// push buttons view to wrapper
+	[[wrapper contentView] addSubview:header];
+
+	return [wrapper, content];
 }
