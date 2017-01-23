@@ -45,6 +45,7 @@ function Exporter(context) {
 
 	this.setOptions = function(options) {
 		imageFormat = options.imageFormat;
+		embedSvg = options.embedSvg;
 	}
 
 	// Accessors
@@ -223,16 +224,11 @@ function Exporter(context) {
 	}
 
 	function generateSVGString(layer) {
-		log("exportFolder: " + exportFolder)
-
 		var filePaths = exportImageForLayer(layer, exportFolder, "svg", [1]);
 		var filePath = filePaths[0];
 
-		log("filePath: " + filePath)
-
 		var fileUrl = [NSURL fileURLWithPath:filePath];
 		var str = [[NSString alloc] initWithContentsOfURL:fileUrl];
-		log("str: " + str)
 		deleteFile(filePath);
 
 		return str;
@@ -293,11 +289,10 @@ function Exporter(context) {
 		exportFolder = folder;
 		selectedArtboards.forEach(function(artboard) {
 			var exportPath = exportFolder + artboard.name() + "/";
-			
+
 			deleteFile(exportPath);
 
 			createFolder(exportPath);
-			createFolder(exportPath + "images/");
 
 			var htmlPath = exportPath + "index.html";
 			saveTextToFile(htmlPath, generateHTML(artboard));
@@ -305,7 +300,10 @@ function Exporter(context) {
 			var cssPath = exportPath + "styles.css";
 			saveTextToFile(cssPath, generateCSS(artboard));
 
-			exportImages(exportLayers[artboard], exportPath);
+			if (!embedSvg) {
+				createFolder(exportPath + "images/");
+				exportImages(exportLayers[artboard], exportPath);
+			}
 		});
 	}
 }
@@ -349,19 +347,29 @@ function getOptions(exporter) {
 
 	// Create alert window
 	var alert = NSAlert.alloc().init();
-	alert.setMessageText("Options");
+	alert.setMessageText("Image Options");
 	alert.addButtonWithTitle('Continue');
 	alert.addButtonWithTitle('Cancel');
 
 	// Create panel
-	var view = NSView.alloc().initWithFrame(NSMakeRect(0, 0, 125, 300));
+	var view = NSView.alloc().initWithFrame(NSMakeRect(0, 0, 300, 160));
 	alert.setAccessoryView(view);
 
-	// Create radio button array
+	// Create a label for image format
+    var formatLabel = [[NSTextField alloc] initWithFrame:NSMakeRect(0, 140, 300, 18)];
+	[formatLabel setStringValue:"Export images as:"];
+	// [formatLabel setFont:[NSFont boldSystemFontOfSize:12]];
+	[formatLabel setFont:[NSFont systemFontOfSize:12]];
+    [formatLabel setBezeled:false];
+    [formatLabel setDrawsBackground:false];
+    [formatLabel setEditable:false];
+    [formatLabel setSelectable:false];
+    [view addSubview:formatLabel];
+
+	// Create radio button array for image format
 	var formatButton = NSButtonCell.alloc().init();
-    formatButton.setTitle("Image Format");
     formatButton.setButtonType(NSRadioButton);
-    var formatMatrix = [[NSMatrix alloc] initWithFrame:NSMakeRect(20, 20, 125, 75)
+    var formatMatrix = [[NSMatrix alloc] initWithFrame:NSMakeRect(0, 90, 300, 40)
                                                   mode:NSRadioModeMatrix
                                              prototype:formatButton
                                           numberOfRows:2
@@ -369,14 +377,41 @@ function getOptions(exporter) {
     var cellArray = formatMatrix.cells();
     cellArray.objectAtIndex(0).setTitle("png");
     cellArray.objectAtIndex(1).setTitle("svg");
-	alert.setAccessoryView(formatMatrix);
-// 	view.addSubView(formatMatrix);
+	view.addSubview(formatMatrix);
 
-	// Add SVG options
-// 	var svgComboBox = NSComboBox.alloc().initWithFrame(NSMakeRect(50,160,100,50));
-// 	svgComboBox.addItemsWithObjectValues(["Embed in HTML", "Export as images"]);
-// 	view.addSubView(svgComboBox);
-//
+	// Create view for SVG options
+	var svgView = NSView.alloc().initWithFrame(NSMakeRect(0, 0, 300, 70));
+	svgView.hidden = true;
+	view.addSubview(svgView);
+
+	// Create a label for svg Options
+    var svgLabel = [[NSTextField alloc] initWithFrame:NSMakeRect(0, 50, 300, 18)];
+	[svgLabel setStringValue:"Export SVG as:"];
+	[svgLabel setFont:[NSFont systemFontOfSize:12]];
+    [svgLabel setBezeled:false];
+    [svgLabel setDrawsBackground:false];
+    [svgLabel setEditable:false];
+    [svgLabel setSelectable:false];
+    [svgView addSubview:svgLabel];
+
+	// Create radio button array for SVG options
+	var svgOptionButton = NSButtonCell.alloc().initTextCell("Separate image files");
+    svgOptionButton.setButtonType(NSRadioButton);
+    var svgMatrix = [[NSMatrix alloc] initWithFrame:NSMakeRect(0, 0, 300, 40)
+                                                  mode:NSRadioModeMatrix
+                                             prototype:svgOptionButton
+                                          numberOfRows:2
+                                      numberOfColumns:1];
+    cellArray = svgMatrix.cells();
+    cellArray.objectAtIndex(0).setTitle("Separate image files");
+    cellArray.objectAtIndex(1).setTitle("Embeded in HTML");
+	svgView.addSubview(svgMatrix);
+
+	// Create view for PNG options
+	// var pngView = NSView.alloc().initWithFrame(NSMakeRect(0, 120, 300, 100));
+	// pngView.hidden = true;
+	// view.addSubview(pngView);
+
 // 	// Add PNG options
 // 	var pngButton = NSButtonCell.alloc().init();
 // 	pngButton.setTitle("Support Retina Sizes");
@@ -392,6 +427,16 @@ function getOptions(exporter) {
 // 	cellArray.objectAtIndex(2).setTitle("@3x");
 // 	view.addSubView(pngMatrix);
 
+	// Detect what format is selected and updated UI
+	[formatMatrix setCOSJSTargetFunction:function(sender) {
+		if (formatMatrix.selectedRow() == 0) { // PNG
+			svgView.hidden = true;
+		} else { // SVG
+			svgView.hidden = false;
+		}
+	}];
+	[formatMatrix setAction:"callAction:"]
+
 	// Display alert
 	var responseCode = alert.runModal();
 
@@ -400,9 +445,9 @@ function getOptions(exporter) {
 		exit();
 	}
 
-
 	var options = {};
 	options.imageFormat = formatMatrix.selectedCells()[0].title();
+	options.embedSvg = svgMatrix.selectedRow() == 1;
 
 	return options;
 }
