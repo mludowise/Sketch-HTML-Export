@@ -495,7 +495,6 @@ function getOptions(exporter) {
 
 	for (var i = 0; i < pngCellArray.count(); i++) {
 		var cell = pngCellArray.objectAtIndex(i);
-		log(cell.title() + " " + cell.state());
 		if (cell.state()) {
 			options.imageScales.push(parseInt(cell.title().substring(1)));
 		}
