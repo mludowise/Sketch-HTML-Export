@@ -18,6 +18,7 @@
     },
   ],
   "menu" : {
+    "isRoot" : true,
     "items" : [
       "export html",
     ]
