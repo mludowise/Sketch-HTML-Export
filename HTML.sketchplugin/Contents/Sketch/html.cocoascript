@@ -30,6 +30,10 @@ function hexColor(color) {
 	return ("#" + r.toString(16) + g.toString(16) + b.toString(16)).toUpperCase();
 }
 
+function nameForScale(scale) {
+	return (scale > 1) ? "@" + scale + "x" : "";
+}
+
 // All logic to export selection to HTML / CSS
 function Exporter(context) {
 	var context = context;
@@ -46,6 +50,7 @@ function Exporter(context) {
 	this.setOptions = function(options) {
 		imageFormat = options.imageFormat;
 		embedSvg = options.embedSvg;
+		imageScales = options.imageScales;
 	}
 
 	// Accessors
@@ -212,7 +217,7 @@ function Exporter(context) {
 	function exportImageForLayer(layer, exportPath, imageFormat, imageScales) {
 		var filePaths = [];
 		var formats = imageScales.map(function(scale) {
-			return [MSExportFormat formatWithScale:scale name:"" fileFormat:imageFormat];
+			return [MSExportFormat formatWithScale:scale name:nameForScale(scale) fileFormat:imageFormat];
 		});
 		var requests = [MSExportRequest exportRequestsFromExportableLayer:layer exportFormats:formats useIDForName: false];
 		requests.forEach(function(request) {
@@ -248,6 +253,29 @@ function Exporter(context) {
 
 		css += "}\n";
 		css += "\n";
+
+		// Set background image for exported layer
+		if (layerMarkedForExport(layer) && !embedSvg && imageScales.length > 1) {
+
+			for (var index in imageScales) {
+				var scale = imageScales[index];
+				if (scale > 1) {
+					var appendName = nameForScale(scale);
+
+					css += "@media only screen and (min--moz-device-pixel-ratio: " + scale + "),\n"
+					+ "only screen and (-o-min-device-pixel-ratio: " + scale + "/1),\n"
+					+ "only screen and (-webkit-min-device-pixel-ratio: " + scale + "),\n"
+					+ "only screen and (min-device-pixel-ratio: " + scale + ") {\n";
+
+					css += "\t.sk-asset.sk-" + cleanString(layer.name()) + " {\n";
+					css += "\t\tbackground-image: url(\"images/" + layer.name() + appendName + "." + imageFormat + "\");\n";
+					css += "\t\tbackground-size: " + Math.round(layer.frame().width()) + "px " + Math.round(layer.frame().height()) + "px;\n";
+					css += "\t}\n";
+
+					css += "}\n";
+				}
+			}
+		}
 
 		return css;
 	}
@@ -352,11 +380,11 @@ function getOptions(exporter) {
 	alert.addButtonWithTitle('Cancel');
 
 	// Create panel
-	var view = NSView.alloc().initWithFrame(NSMakeRect(0, 0, 300, 160));
+	var view = NSView.alloc().initWithFrame(NSMakeRect(0, 0, 300, 180));
 	alert.setAccessoryView(view);
 
 	// Create a label for image format
-    var formatLabel = [[NSTextField alloc] initWithFrame:NSMakeRect(0, 140, 300, 18)];
+    var formatLabel = [[NSTextField alloc] initWithFrame:NSMakeRect(0, 160, 300, 18)];
 	[formatLabel setStringValue:"Export images as:"];
 	// [formatLabel setFont:[NSFont boldSystemFontOfSize:12]];
 	[formatLabel setFont:[NSFont systemFontOfSize:12]];
@@ -369,7 +397,7 @@ function getOptions(exporter) {
 	// Create radio button array for image format
 	var formatButton = NSButtonCell.alloc().init();
     formatButton.setButtonType(NSRadioButton);
-    var formatMatrix = [[NSMatrix alloc] initWithFrame:NSMakeRect(0, 90, 300, 40)
+    var formatMatrix = [[NSMatrix alloc] initWithFrame:NSMakeRect(0, 110, 300, 40)
                                                   mode:NSRadioModeMatrix
                                              prototype:formatButton
                                           numberOfRows:2
@@ -380,7 +408,7 @@ function getOptions(exporter) {
 	view.addSubview(formatMatrix);
 
 	// Create view for SVG options
-	var svgView = NSView.alloc().initWithFrame(NSMakeRect(0, 0, 300, 70));
+	var svgView = NSView.alloc().initWithFrame(NSMakeRect(0, 20, 300, 70));
 	svgView.hidden = true;
 	view.addSubview(svgView);
 
@@ -408,31 +436,45 @@ function getOptions(exporter) {
 	svgView.addSubview(svgMatrix);
 
 	// Create view for PNG options
-	// var pngView = NSView.alloc().initWithFrame(NSMakeRect(0, 120, 300, 100));
-	// pngView.hidden = true;
-	// view.addSubview(pngView);
+	var pngView = NSView.alloc().initWithFrame(NSMakeRect(0, 0, 300, 90));
+	view.addSubview(pngView);
 
-// 	// Add PNG options
-// 	var pngButton = NSButtonCell.alloc().init();
-// 	pngButton.setTitle("Support Retina Sizes");
-// 	pngButton.setButtonType(NSSwitchButton);
-//     var pngMatrix = [[NSMatrix alloc] initWithFrame:NSMakeRect(20, 200, 125, 75)
-//                                                mode:nil
-//                                           prototype:pngButton
-//                                        numberOfRows:3
-//                                     numberOfColumns:1];
-// 	cellArray = pngMatrix.cells();
-// 	cellArray.objectAtIndex(0).setTitle("@1x");
-// 	cellArray.objectAtIndex(1).setTitle("@2x");
-// 	cellArray.objectAtIndex(2).setTitle("@3x");
-// 	view.addSubView(pngMatrix);
+	// Create a label for png Options
+    var pngLabel = [[NSTextField alloc] initWithFrame:NSMakeRect(0, 70, 300, 18)];
+	[pngLabel setStringValue:"PNG sizes:"];
+	[pngLabel setFont:[NSFont systemFontOfSize:12]];
+    [pngLabel setBezeled:false];
+    [pngLabel setDrawsBackground:false];
+    [pngLabel setEditable:false];
+    [pngLabel setSelectable:false];
+    [pngView addSubview:pngLabel];
+
+	// Add PNG options
+	var pngButton = NSButtonCell.alloc().init();
+	pngButton.setTitle("Support Retina Sizes");
+	pngButton.setButtonType(NSSwitchButton);
+	[pngButton setState:NSOnState];
+    var pngMatrix = [[NSMatrix alloc] initWithFrame:NSMakeRect(0, 0, 300, 60)
+                                               mode:NSTrackModeMatrix
+                                          prototype:pngButton
+                                       numberOfRows:3
+                                    numberOfColumns:1];
+	pngMatrix.setAllowsEmptySelection(true);
+	var pngCellArray = pngMatrix.cells();
+	pngCellArray.objectAtIndex(0).setTitle("@1x");
+	pngCellArray.objectAtIndex(1).setTitle("@2x");
+	pngCellArray.objectAtIndex(2).setTitle("@3x");
+	pngCellArray.objectAtIndex(0).setEnabled(false);
+	pngView.addSubview(pngMatrix);
 
 	// Detect what format is selected and updated UI
 	[formatMatrix setCOSJSTargetFunction:function(sender) {
 		if (formatMatrix.selectedRow() == 0) { // PNG
 			svgView.hidden = true;
+			pngView.hidden = false;
 		} else { // SVG
 			svgView.hidden = false;
+			pngView.hidden = true;
 		}
 	}];
 	[formatMatrix setAction:"callAction:"]
@@ -445,9 +487,19 @@ function getOptions(exporter) {
 		exit();
 	}
 
+	// Return options
 	var options = {};
 	options.imageFormat = formatMatrix.selectedCells()[0].title();
 	options.embedSvg = svgMatrix.selectedRow() == 1;
+	options.imageScales = [];
+
+	for (var i = 0; i < pngCellArray.count(); i++) {
+		var cell = pngCellArray.objectAtIndex(i);
+		log(cell.title() + " " + cell.state());
+		if (cell.state()) {
+			options.imageScales.push(parseInt(cell.title().substring(1)));
+		}
+	}
 
 	return options;
 }
