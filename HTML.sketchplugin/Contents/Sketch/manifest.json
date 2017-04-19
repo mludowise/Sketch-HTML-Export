@@ -15,12 +15,12 @@
       "handler" : "exportHTML",
       "name" : "Export HTML",
       "identifier" : "export html"
-    },
+    }
   ],
   "menu" : {
     "isRoot" : true,
     "items" : [
-      "export html",
+      "export html"
     ]
   }
 }
