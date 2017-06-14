@@ -4,7 +4,7 @@
   "homepage": "",
   "bundleVersion": 1,
   "identifier" : "com.mludowise.htmlexport",
-  "version" : 0.1,
+  "version" : 0.2,
   "description" : "Export HTML from a Sketch file.",
   "authorEmail" : "mludowise@gmail.com",
   "compatibleVersion": 3,

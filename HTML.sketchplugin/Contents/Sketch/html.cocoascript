@@ -83,7 +83,7 @@ function Exporter(context) {
 	}
 
 	function layerMarkedForExport(layer) {
-		var exportOptions = layer.exportOptionsGeneric();
+		var exportOptions = layer.exportOptions();
 		var formats = exportOptions.exportFormats();
 		return formats.count() > 0;
 	}
