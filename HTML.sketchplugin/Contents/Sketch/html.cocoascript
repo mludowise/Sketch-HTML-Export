@@ -39,7 +39,7 @@ function Exporter(context) {
 	var context = context;
 	var doc = context.document;
 	var page = doc.currentPage();
-	var selection = doc ? doc.findSelectedLayers() : nil;
+	var selection = doc ? doc.selectedLayers() : nil;
 	var selectedArtboards = getSelectedArtboards();
 
 	var imageFormat = "svg";
@@ -96,13 +96,20 @@ function Exporter(context) {
 
 	// Gets the artboards belonging to the selected items
 	function getSelectedArtboards() {
+
+		// Use set to guarantee unique artboards
+		var artboardSet = NSMutableSet.alloc().init();
+
 		var artboards = [];
-		selection.forEach(function(layer) {
+
+		for (var i = 0; i < selection.layers().count(); i++) {
+			let layer = selection.layers()[i];
 			var artboard = layer.parentArtboard();
-			if (artboard != undefined) {
+			if (artboard != undefined && !artboardSet.containsObject(artboard)) {
+				artboardSet.addObject(artboard);
 				artboards.push(artboard);
 			}
-		});
+		}
 		return artboards;
 	}
 
@@ -507,8 +514,9 @@ function getOptions(exporter) {
 function exportHTML(context) {
 	try {
 		var exporter = new Exporter(context);
+		let selectedArtboards = exporter.getSelectedArtboards();
 
-		if (exporter.getSelectedArtboards() == undefined || exporter.getSelectedArtboards().length < 1) {
+		if (selectedArtboards == undefined || selectedArtboards.length < 1) {
 			alertError("Please select the artboards you want to export to HTML.", "No Artboard Selected");
 			return;
 		}

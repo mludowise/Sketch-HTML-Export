@@ -1,13 +1,13 @@
 {
   "name" : "HTML Export",
   "author" : "Mel Ludowise",
-  "homepage": "",
+  "homepage": "https://github.com/mludowise/Sketch-HTML-Export",
   "bundleVersion": 1,
   "identifier" : "com.mludowise.htmlexport",
   "version" : 0.2,
   "description" : "Export HTML from a Sketch file.",
   "authorEmail" : "mludowise@gmail.com",
-  "compatibleVersion": 3,
+  "compatibleVersion": 45.1,
 
   "commands" : [
     {
