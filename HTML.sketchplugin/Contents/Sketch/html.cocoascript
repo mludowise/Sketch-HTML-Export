@@ -103,7 +103,7 @@ function Exporter(context) {
 		var artboards = [];
 
 		for (var i = 0; i < selection.layers().count(); i++) {
-			let layer = selection.layers()[i];
+			var layer = selection.layers()[i];
 			var artboard = layer.parentArtboard();
 			if (artboard != undefined && !artboardSet.containsObject(artboard)) {
 				artboardSet.addObject(artboard);
@@ -514,7 +514,7 @@ function getOptions(exporter) {
 function exportHTML(context) {
 	try {
 		var exporter = new Exporter(context);
-		let selectedArtboards = exporter.getSelectedArtboards();
+		var selectedArtboards = exporter.getSelectedArtboards();
 
 		if (selectedArtboards == undefined || selectedArtboards.length < 1) {
 			alertError("Please select the artboards you want to export to HTML.", "No Artboard Selected");
